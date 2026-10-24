@@ -1,0 +1,40 @@
+name: Arquivo EFI RC2 pronto para baixar
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/efi-html-completo-modulos-rc2-20261024
+jobs:
+  publicar-anexo:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar arquivos completos
+        shell: bash
+        run: |
+          test -s EvoluFisico2_EFI_RC2_FUNCIONAL.html
+          test -s EvoluFisico2_EFI_RC2_FUNCIONAL.zip
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile, hashlib
+          html=Path('EvoluFisico2_EFI_RC2_FUNCIONAL.html').read_bytes()
+          with zipfile.ZipFile('EvoluFisico2_EFI_RC2_FUNCIONAL.zip') as z:
+              assert z.testzip() is None
+              assert z.namelist() == ['EvoluFisico2_EFI_RC2_FUNCIONAL.html']
+              assert z.read(z.namelist()[0]) == html
+          assert b'EFIIntegratedPreview' in html
+          assert b'EFModernPreview' in html
+          print('PASS: ZIP corresponde exatamente ao HTML completo.')
+          print('sha256:', hashlib.sha256(html).hexdigest())
+          PY
+      - name: Publicar o HTML e ZIP como artefatos
+        uses: actions/upload-artifact@v4
+        with:
+          name: EvoluFisico2_EFI_RC2_PARA_DOWNLOAD
+          path: |
+            EvoluFisico2_EFI_RC2_FUNCIONAL.html
+            EvoluFisico2_EFI_RC2_FUNCIONAL.zip
+          if-no-files-found: error
+          retention-days: 30
